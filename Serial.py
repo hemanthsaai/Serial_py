@@ -83,14 +83,33 @@ def Write_to_serial_port(value):
         print("Error in writing to PORT")
         return FAIL
         
-
-
+#Reads "length" number of bytes specified via function argument
+#and returns the data     
+def Read_from_serial_port(length):
+    if open_port:
+        data = open_port.read(length)
+        return data
+  
+#converts a 32 bit word to 8 bit
+#retuns a list of bytes   
+#USAGE: byte_list = word_to_bytelist(0x12345678, 2)
+#  o/p :  [0x78,0x56]
+def word_to_bytelist(word,length):
+    byte_list = []
+    for i in range(length):
+        byte_list.append(    ( (word >> (8 * i))  & 0x000000FF )     )
+    return byte_list
+    
+#Start Application Implementation here
 def start_here():        
     open_port = open_serial_port()
     if open_port:
         open_port.close()
+        byte_list = word_to_bytelist(0x12345678, 2)
+        print(byte_list)
+
 
 os.system("cls")        
-while 1:
-    start_here()
+global open_port
+start_here()
 
