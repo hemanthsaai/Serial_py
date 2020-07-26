@@ -15,7 +15,6 @@ def calc_Crc32Mpeg2(data,length):
     crcinst = Crc32Mpeg2()
     for i in range(length):
         value = struct.pack('>B', data[i])
-        print(value)
         crcinst.process(value)
         length = length-1
         
