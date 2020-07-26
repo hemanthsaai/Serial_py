@@ -7,9 +7,10 @@ import os
 import Crc_calc
 
 #MACRO KIND INITIALIZATIONS
-PASS = 1
-FAIL = 0
-
+PASS                            = 1
+FAIL                            = 0
+COM_ACK                         = 0xA5
+COM_NACK                        = 0xA6
       
 global open_port
 
@@ -112,6 +113,25 @@ def hex_len(data):
         return int((length+1)/2)     # if len is 3 then the number of bytes is 1.5(0xFFF), so round it off to 2 bytes
     else:
         return int(length/2)     
+        
+        
+#reads one byte from COM PORT and verifies if the 
+#byte is ACK-0xA5 or NACK        
+def get_ACK():
+    rx_ack = 0
+    while rx_ack == 0:    
+        rx_ack = open_port.read(1)    
+    print("\n")
+    print(rx_ack)
+    if rx_ack[0]    == COM_ACK:
+        print("AcK receeived correctly")
+        return PASS
+    else:
+        print("Invalid Ack received")
+        return FAIL
+        
+        
+        
     
 #Start Application Implementation here
 #def start_here():        
@@ -132,8 +152,9 @@ if open_port:
     print(to_transmit)
     for byte in to_transmit:
         Write_to_serial_port(byte)
+    
+    get_ACK()
         
-    open_port.readline()
     to_transmit = []
     #transmit delay
     delay_to_transmit = word_to_bytelist(  delay, hex_len(delay) )
@@ -152,6 +173,10 @@ if open_port:
         
     for byte in to_transmit:
         Write_to_serial_port(byte)
+        
+    get_ACK()    
+        
+        
     open_port.close()
         
         
