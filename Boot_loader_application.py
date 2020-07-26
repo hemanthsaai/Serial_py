@@ -19,7 +19,7 @@ TXT_BOOTLOADER_INTEG_CHECK      = "CMD_BOOTLOADER_INTEG_CHECK"
 
 LEN_BOOTLOADER_GET_VERSION      = 0x1
 LEN_BOOTLOADER_GET_CHIP_ID      = 0x4
-LEN_BOOTLOADER_ERASE_APPLI      = 0x2
+LEN_BOOTLOADER_ERASE_APPLI      = 0x1
 LEN_BOOTLOADER_FLASH_APPLI      = 0x1
 LEN_BOOTLOADER_INTEG_CHECK      = 0x1
 
@@ -111,6 +111,23 @@ elif user_ip == CMD_BOOTLOADER_GET_CHIP_ID:
     cid = My_Serial.Read_from_serial_port(LEN_BOOTLOADER_GET_CHIP_ID)
     cid = cid[0]<<24 | cid[1] << 16 | cid[2] <<8 | cid[3]
     print("|    Chip Identification Number : " + str(cid) + " "*51 + "|")
+    #print(transmit_data)
+    
+elif user_ip == CMD_BOOTLOADER_ERASE_APPLI:
+    transmit_data = My_Serial.word_to_bytelist(CMD_BOOTLOADER_ERASE_APPLI, My_Serial.hex_len(CMD_BOOTLOADER_ERASE_APPLI))
+    crc_value = Crc_calc.calc_Crc32Mpeg2(transmit_data,len(transmit_data))
+    crc_value = My_Serial.word_to_bytelist(crc_value, My_Serial.hex_len(crc_value) )
+    for element in crc_value:
+        transmit_data.append(element)
+        
+    for byte in transmit_data:
+        My_Serial.Write_to_serial_port(byte)
+        
+    status = My_Serial.get_ACK()
+
+    status = My_Serial.Read_from_serial_port(LEN_BOOTLOADER_ERASE_APPLI)
+    print(status)
+    #print("|    Flash Erase Status : " + str(int(status[0])) + " "*58 + "|")
     #print(transmit_data)
     
 else:
