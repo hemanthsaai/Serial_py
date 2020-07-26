@@ -4,11 +4,14 @@ import sys
 import glob
 import struct
 import os
+import Crc_calc
 
 #MACRO KIND INITIALIZATIONS
 PASS = 1
 FAIL = 0
 
+      
+global open_port
 
 # Scan and returns a list of open COM ports 
 def Identify_Open_COM_PORTS():
@@ -98,18 +101,63 @@ def word_to_bytelist(word,length):
     byte_list = []
     for i in range(length):
         byte_list.append(    ( (word >> (8 * i))  & 0x000000FF )     )
+    byte_list.reverse()
     return byte_list
     
+#returns number of bytes in the given number 
+def hex_len(data):
+    length = len(hex(data))-2
+    length = int(length)
+    if int(length%2):
+        return int((length+1)/2)     # if len is 3 then the number of bytes is 1.5(0xFFF), so round it off to 2 bytes
+    else:
+        return int(length/2)     
+    
 #Start Application Implementation here
-def start_here():        
-    open_port = open_serial_port()
-    if open_port:
-        open_port.close()
-        byte_list = word_to_bytelist(0x12345678, 2)
-        print(byte_list)
+#def start_here():        
+open_port = open_serial_port()
+if open_port:
+    delay = int(input("Enter Required Delay:"))
+    to_transmit = []
+    
+    #transmit length 
+    to_transmit = word_to_bytelist(hex_len(delay), 1)
+    crc_val = Crc_calc.calc_Crc32Mpeg2(to_transmit,len(to_transmit))
+    print(crc_val)
+    crc_val_to_transmit = word_to_bytelist(  crc_val, hex_len(crc_val) )
+    print(crc_val_to_transmit)
+    for element in crc_val_to_transmit:
+        to_transmit.append(element)
+        
+    print(to_transmit)
+    for byte in to_transmit:
+        Write_to_serial_port(byte)
+        
+    open_port.readline()
+    to_transmit = []
+    #transmit delay
+    delay_to_transmit = word_to_bytelist(  delay, hex_len(delay) )
+    print(delay_to_transmit)
+    for element in delay_to_transmit:
+        to_transmit.append(element)
+    
+    crc_val = Crc_calc.calc_Crc32Mpeg2(to_transmit,len(to_transmit))
+    print(crc_val)
+    crc_val_to_transmit = word_to_bytelist(  crc_val, hex_len(crc_val) )
+    print(crc_val_to_transmit)
+    for element in crc_val_to_transmit:
+        to_transmit.append(element)
+               
+    print(to_transmit)
+        
+    for byte in to_transmit:
+        Write_to_serial_port(byte)
+    open_port.close()
+        
+        
 
 
-os.system("cls")        
-global open_port
-start_here()
+
+#os.system("cls")  
+#start_here()
 

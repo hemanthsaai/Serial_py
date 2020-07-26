@@ -10,7 +10,7 @@ from        crccheck.crc import Crc32Mpeg2
 #https://crccalc.com/
 #-----------------------------------------------------------------------------------------------------
 #Calculates Crc32Mpeg2 value of the given list and its length
-#returns a hex value of calculated CRC
+#returns a int value of calculated CRC
 def calc_Crc32Mpeg2(data,length):
     crcinst = Crc32Mpeg2()
     for i in range(length):
@@ -19,4 +19,4 @@ def calc_Crc32Mpeg2(data,length):
         crcinst.process(value)
         length = length-1
         
-    return hex(crcinst.final())
+    return crcinst.final()
