@@ -75,12 +75,12 @@ def Read_from_serial_port(length):
 #converts a 32 bit word to 8 bit
 #retuns a list of bytes   
 #USAGE: byte_list = word_to_bytelist(0x12345678, 2)
-#  o/p :  [0x78,0x56]
+#  o/p :  [0x12,0x34,0x56,0x78] MSB FIRST when list is not reversed
 def word_to_bytelist(word,length):
     byte_list = []
     for i in range(length):
         byte_list.append(    ( (word >> (8 * i))  & 0x000000FF )     )
-    byte_list.reverse()
+    #byte_list.reverse()
     return byte_list
     
 #returns number of bytes in the given number 
