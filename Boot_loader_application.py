@@ -1,11 +1,12 @@
+#Import required Modules
 import Crc_calc
 import My_Serial
 import struct
 import os
 import sys
 
-##MSB FIRST
-
+#BOOTLOADER COMMUNICATOR V1.0
+#HemanthjSai
 
 #MACRO DEFINITIONS
 CMD_BOOTLOADER_GET_VERSION      = 0xB1      #get Bootloader Version
@@ -30,13 +31,15 @@ LEN_BOOTLOADER_ERASE_APPLI      = 0x1
 LEN_BOOTLOADER_FLASH_APPLI      = 0x1
 LEN_BOOTLOADER_INTEG_CHECK      = 0x1
 LEN_TEST                        = 0x1
+LEN_OF_ACK                         = 0x1 
 
 PASS                            = 0x1
 FAIL                            = 0x0
 
-BL_ACK                          = 0xA5
-BL_NACK                         = 0xA6
+BL_ACK                          = 0xA5  #If the command is executed properly (Currently only CRC check)
+BL_NACK                         = 0xA6  #If an error occurs (Currently only CRC ERROR)
 
+#The BIN will be split to packets, each of length defined here
 BL_MAX_APPL_PACK_LIM            = 256
 
 ##Global Variables
@@ -49,19 +52,19 @@ packet_count = 0
 #adds CRC to the end of list
 #Transmits the data and verifies the acknowledement
 def Transmit_a_packet(packet):
-    #Add CRC to the packet 
+    #Add CRC to the packet
     crc_value = Crc_calc.calc_Crc32Mpeg2(packet,len(packet))
     Crc_to_byte = My_Serial.word_to_bytelist(crc_value, My_Serial.hex_len(crc_value))
     for element in Crc_to_byte:
         packet.append(element)
     print(packet)
-    #return
+
     #With CRC at end of Packett, We are ready for Transmission
     for element in packet:
         #Transmit Byte after Byte 
         My_Serial.Write_to_serial_port(element)
     #Take the acknowledement and  ensure the packet is sucessfully transfered
-    status = My_Serial.Read_from_serial_port(LEN_TEST)
+    status = My_Serial.Read_from_serial_port(LEN_OF_ACK)
     if status == struct.pack('>B',BL_ACK):
         #Received S
         print("PACKET Flashed ") 
@@ -73,20 +76,28 @@ def Transmit_a_packet(packet):
         print("Invalid Status Received while Flashing Packet:  " + str(status))
         return FAIL
 
+#After the BIN is split to packets, before transmisssion we have to first send 
+#the length of the packet to STM, then STM will configure UART 
+#to receive sent number of bytes
+#
+#This function is called before transmitting every packet. 
+#Also before the whole BIN indicating Number of packets
 def Transmit_a_Length_packet(length):
     Length_Packet = []
     #first append the Command of Bootloader
     Length_Packet.append(CMD_BOOTLOADER_FLASH_APPLI)
-    #As the size of packet Length field is 2 bytes, 
-    #Append 0's in remaining bytes if len is not 2 bytes
+    #Append the Length to the packet now
     len_count = My_Serial.hex_len(length)
     byte_list = My_Serial.word_to_bytelist(length, len_count)
     for byte in byte_list:
-        Length_Packet.append(byte)
+        Length_Packet.append(byte)   
+    #As the size of packet Length field is 2 bytes,         
+    #Append 0's in remaining bytes if len is not 2 bytes
     if len_count != 2:
         Length_Packet.append(0x0)
-    #print("Length_command: ")
-    #print(Length_Packet)
+    #Now we are ready for Transmission
+    #this function call will add CRC at end and transmit the packet.
+    #Also it takes care of Acknowledge
     Transmit_a_packet(Length_Packet)
     Length_Packet.clear()    
 
@@ -103,7 +114,7 @@ def process_bin():
     print("Total byets in BIN is :  " + str(byte_count))
     
     #now each pack is with BL_MAX_APPL_PACK_LIM bytes 
-    #so calculate number of total packets to transfer
+    #so calculate number of total packets to transfer by spliting the BIN
     Num_Packets = int(byte_count / BL_MAX_APPL_PACK_LIM) + 1
     print("Num of packts to transfer : " + str(Num_Packets))
     Transmit_a_Length_packet(Num_Packets)
@@ -118,6 +129,8 @@ def process_bin():
     #read the binary byte by byte and append to a list
     byte = binary.read(1)
     while byte:
+        #Bytes read from file are already in Binary format, Lets Unpack them first 
+        #as we have to calculate CRC
         byte = struct.unpack('>B',byte)
         appl_packet.append(byte[0])
         byte_count = byte_count + 1
@@ -125,8 +138,7 @@ def process_bin():
         #then calculate CRC for the appl_packet and transmit it
         if byte_count == BL_MAX_APPL_PACK_LIM:
             #ALL READY FOR TRANSMISSION
-            #Transmit_a_Length_packet(1)
-            Transmit_a_Length_packet(byte_count + 4) # 4 addition for CRC
+            Transmit_a_Length_packet(byte_count + 4) # 4 extra for CRC
             Transmit_a_packet(appl_packet)
             #clear the appl_packet so we can frame a fresh appl_packet from binary
             byte_count = 0
@@ -290,3 +302,4 @@ print("|" + "_"*93 + "|")
 
 
 
+#END
